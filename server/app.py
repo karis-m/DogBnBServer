@@ -1,18 +1,18 @@
-import os
-from flask import Flask, jsonify, make_response, request
+from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_restful import Api, Resource
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 from models import db, User, DogHouse, Review
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///dogbnb.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
 
 migrate = Migrate(app, db)
 
-
+CORS(app)
 @app.route('/')
 def home():
     return 'Welcome to the Dog House'
@@ -21,10 +21,12 @@ def home():
 @app.route('/users', methods=['POST'])
 def create_user():
     data = request.get_json()
+    first_name = data.get('first_name')
+    last_name = data.get('last_name')
     email = data.get('email')
     password = data.get('password')
     
-    new_user = User(email=email, password=password)
+    new_user = User(first_name=first_name, last_name=last_name, email=email, password=password)
     db.session.add(new_user)
     db.session.commit()
     
@@ -42,7 +44,7 @@ def create_doghouse():
     if user is None:
         return jsonify(error='User not found'), 404
     
-    new_doghouse = DogHouse(name=name, location=location, user_id=user_id)
+    new_doghouse = DogHouse(name=name, latitude=latitude, longitude=longitude, user_id=user.id)
     db.session.add(new_doghouse)
     db.session.commit()
     
@@ -68,16 +70,16 @@ def create_review():
     
     return jsonify(message='Review created successfully!'), 201
 
-@app.route('/users', methods=['GET'])
-def get_users():
-    users = User.query.all()
-    users_list = []
-    for user in users:
-        users_list.append({
-            'id': user.id,
-            'email': user.email
-        })
-    return jsonify(users_list)
+# @app.route('/users', methods=['GET'])
+# def get_users():
+#     users = User.query.all()
+#     users_list = []
+#     for user in users:
+#         users_list.append({
+#             'id': user.id,
+#             'email': user.email
+#         })
+#     return jsonify(users_list)
 
 @app.route('/doghouses', methods=['GET'])
 def get_doghouses():
